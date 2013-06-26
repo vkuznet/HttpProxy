@@ -114,9 +114,18 @@ func parseRules(records [][]string) []Rules {
 	return rules
 }
 
+func parseTmpl(tmpl string, data interface{}) string {
+    buf := new(bytes.Buffer)
+    filenames := fileNames(tmpl)
+    t := template.Must(template.ParseFiles(filenames...))
+    err := t.Execute(buf, data)
+    checkError(err)
+    return buf.String()
+}
+
 func myproxy() {
 
-	var port, wlistFile, blistFile, ruleFile string
+	var port, wlistFile, blistFile, ruleFile, aname, apwd string
 	var verbose int
     var interval int64
 	flag.StringVar(&port, "port", ":9998", "Proxy port number")
@@ -125,6 +134,8 @@ func myproxy() {
 	flag.StringVar(&ruleFile, "rules", "rules.txt", "Rule list file")
 	flag.IntVar(&verbose, "verbose", 0, "logging level")
 	flag.Int64Var(&interval, "interval", 300, "reload interval")
+	flag.StringVar(&aname, "login", "admin", "Admin login name")
+	flag.StringVar(&apwd, "password", "test", "Admin password")
 	flag.Parse()
 
 	// init proxy server
@@ -148,19 +159,24 @@ func myproxy() {
 	// admin handler
 	proxy.OnRequest(goproxy.DstHostIs("")).DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			tauth := "auth.tmpl.html"
+            u := r.FormValue("login")
+            p := r.FormValue("password")
+            if u == aname && p == apwd {
+                log.Println("access admin interface")
+            } else {
+                data := map[string]interface{}{}
+                return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
+                    http.StatusOK, parseTmpl(tauth, data))
+            }
 			tpage := "admin.tmpl.html"
 			data := map[string]interface{}{
 				"whitelist": whitelist,
 				"blacklist": blacklist,
 				"rulelist":  rulelist,
 			}
-			buf := new(bytes.Buffer)
-			filenames := fileNames(tpage)
-			t := template.Must(template.ParseFiles(filenames...))
-			err := t.Execute(buf, data)
-			checkError(err)
 			return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-				http.StatusOK, buf.String())
+				http.StatusOK, parseTmpl(tpage, data))
 		})
 
 	// restrict certain sites on time based rules
