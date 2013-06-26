@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -14,8 +13,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
+    "bytes"
+    "text/template"
 )
 
 // consume list of templates and release their full path counterparts
@@ -111,7 +111,7 @@ func myproxy() {
 
 	var port, wlistFile, blistFile, ruleFile string
 	var verbose int
-	flag.StringVar(&port, "port", ":9999", "Proxy port number")
+	flag.StringVar(&port, "port", ":19998", "Proxy port number")
 	flag.StringVar(&wlistFile, "whitelist", "whitelist.txt", "White list file")
 	flag.StringVar(&blistFile, "blacklist", "blacklist.txt", "Black list file")
 	flag.StringVar(&ruleFile, "rules", "rules.txt", "Rule list file")
@@ -120,7 +120,10 @@ func myproxy() {
 
 	// init proxy server
 	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = false // true
+    proxy.Verbose = false // true
+    if verbose > 1 {
+        proxy.Verbose = true
+    }
 	msg := fmt.Sprintf("port=%s, verbose=%d, wlist=%s, blist=%s, rule=%s", port, verbose, wlistFile, blistFile, ruleFile)
 	log.Println(msg)
 
@@ -193,7 +196,6 @@ func myproxy() {
 
 	// start and log http proxy server
 	log.Fatal(http.ListenAndServe(port, proxy))
-
 }
 
 func main() {
