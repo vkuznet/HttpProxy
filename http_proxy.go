@@ -62,9 +62,16 @@ func readTxtFile(fname string) []string {
 		}
 		line := string(data)
 		// skip line which starts with #
-		if len(line) > 1 && strings.HasPrefix(line, "#") == true {
-			continue
-		}
+        if len(line) == 0 {
+            continue
+        } else {
+            if strings.HasPrefix(line, "#") == true {
+                continue
+            }
+            if strings.HasPrefix(line, " ") == true {
+                continue
+            }
+        }
 		out = append(out, line)
 	}
 	return out
@@ -111,11 +118,13 @@ func myproxy() {
 
 	var port, wlistFile, blistFile, ruleFile string
 	var verbose int
+    var interval int64
 	flag.StringVar(&port, "port", ":9998", "Proxy port number")
 	flag.StringVar(&wlistFile, "whitelist", "whitelist.txt", "White list file")
 	flag.StringVar(&blistFile, "blacklist", "blacklist.txt", "Black list file")
 	flag.StringVar(&ruleFile, "rules", "rules.txt", "Rule list file")
 	flag.IntVar(&verbose, "verbose", 0, "logging level")
+	flag.Int64Var(&interval, "interval", 300, "reload interval")
 	flag.Parse()
 
 	// init proxy server
@@ -134,6 +143,7 @@ func myproxy() {
 	log.Println("Black list:", blacklist)
 	rulelist := parseRules(readCSVFile(ruleFile))
 	log.Println("Rule list:", rulelist)
+    lastRead := time.Now().UTC().Unix()
 
 	// admin handler
 	proxy.OnRequest(goproxy.DstHostIs("")).DoFunc(
@@ -157,6 +167,15 @@ func myproxy() {
 	for _, rule := range rulelist {
 		proxy.OnRequest(goproxy.DstHostIs(rule.Url)).DoFunc(
 			func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+                // reload maps if necessary
+                unix := time.Now().UTC().Unix()
+                if  unix-lastRead > interval {
+                    rulelist := parseRules(readCSVFile(ruleFile))
+                    if verbose > 0 {
+                        log.Println("Rule list:", rulelist)
+                    }
+                    lastRead = unix
+                }
 				h, _, _ := time.Now().Clock()
 				if h < rule.MinHour && h > rule.MaxHour {
 					return r, goproxy.NewResponse(r,
@@ -170,19 +189,30 @@ func myproxy() {
 	// filter white/black lists
 	proxy.OnRequest().DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-			pat1 := strings.Join(whitelist, "$|")
+            // reload maps if necessary
+            unix := time.Now().UTC().Unix()
+            if  unix-lastRead > interval {
+                whitelist := readTxtFile(wlistFile)
+                blacklist := readTxtFile(blistFile)
+                if verbose > 0 {
+                    log.Println("Reload white list:", whitelist)
+                    log.Println("Reload black list:", blacklist)
+                }
+                lastRead = unix
+            }
+			pat1 := strings.Join(whitelist, "|")
 			expect1 := false // match=false means site not in whitelist
 			match1, err := regexp.MatchString(pat1, r.URL.Host)
 			if err != nil {
 				log.Println("ERROR: fail in match", pat1, r.URL.Host)
 			}
-			pat2 := strings.Join(blacklist, "$|")
+			pat2 := strings.Join(blacklist, "|")
 			expect2 := true // match=true means site is in blacklist
 			match2, err := regexp.MatchString(pat2, r.URL.Host)
 			if err != nil {
 				log.Println("ERROR: fail in match", pat2, r.URL.Host)
 			}
-			if match1 == expect1 && match2 == expect2 {
+			if match2 == expect2 || match1 == expect1 {
 				path := html.EscapeString(r.URL.Path)
 				if verbose > 0 {
 					log.Println(r.URL.Host, path)
