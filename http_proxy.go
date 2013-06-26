@@ -72,15 +72,19 @@ func readTxtFile(fname string) []string {
 
 // read CSV file and return headers and values
 func readCSVFile(fname string) [][]string {
+    var out [][]string
 	// open file and read its content into byte's buffer
 	fi, err := os.Open(fname)
+	if err != nil {
+		return out
+	}
 	defer closeFile(fi)
 	checkError(err)
 	// make a reader buffer
 	rb := bufio.NewReader(fi)
 	// make CSV reader
 	r := csv.NewReader(rb)
-	out, err := r.ReadAll()
+	out, err = r.ReadAll()
 	checkError(err)
 	return out
 }
