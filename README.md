@@ -43,6 +43,16 @@ www.myspace.com,12,15
 
 The HttpProxy will read its content and apply this rules to the proxy.
 
+Usage
+-----
+To build the executable just run
+```
+go build
+```
+
+To run it, you may invoke it from your command line or use run.sh script
+Finally, you'll need to configure your browser accordingly to use the proxy.
+
 References
 ----------
 [1] github.com/elazarl/goproxy
