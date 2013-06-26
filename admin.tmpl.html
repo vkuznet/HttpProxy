@@ -47,25 +47,30 @@ h2, h3 {
     </style>
 <body>
 <div class="wrapper">
-    <h1>HttpProxy admin panel</h1>
+    <form action="/save" method="post" accept-charset="utf-8">
+    <h2>HttpProxy admin panel</h2>
+    <hr />
     <h3>White list</h3>
-    <textarea rows="10" cols="50">
+    <textarea rows="10" cols="50" name="whitelist" id="whitelist">
 {{range .whitelist}}
 {{.}}
 {{end}}
     </textarea>
     <h3>Black list</h3>
-    <textarea rows="10" cols="50">
+    <textarea rows="10" cols="50" name="blacklist" id="blacklist">
 {{range .blacklist}}
 {{.}}
 {{end}}
     </textarea>
     <h3>Rule list</h3>
-    <textarea rows="10" cols="50">
+    <textarea rows="10" cols="50" name="rulelist" id="rulelist">
 {{range .rulelist}}
 {{.}}
 {{end}}
     </textarea>
+    <hr />
+    <input type="submit" value="Submit"/>
+    </form>
 </div>
 </body>
 </html>
