@@ -111,7 +111,7 @@ func myproxy() {
 
 	var port, wlistFile, blistFile, ruleFile string
 	var verbose int
-	flag.StringVar(&port, "port", ":9999", "Proxy port number")
+	flag.StringVar(&port, "port", ":9998", "Proxy port number")
 	flag.StringVar(&wlistFile, "whitelist", "whitelist.txt", "White list file")
 	flag.StringVar(&blistFile, "blacklist", "blacklist.txt", "Black list file")
 	flag.StringVar(&ruleFile, "rules", "rules.txt", "Rule list file")
