@@ -159,24 +159,38 @@ func myproxy() {
 	// admin handler
 	proxy.OnRequest(goproxy.DstHostIs("")).DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-			tauth := "auth.tmpl.html"
-            u := r.FormValue("login")
-            p := r.FormValue("password")
-            if u == aname && p == apwd {
-                log.Println("access admin interface")
-            } else {
-                data := map[string]interface{}{}
+            path := html.EscapeString(r.URL.Path)
+            log.Println("admin interface", path)
+            if path == "/admin" {
+                tauth := "auth.tmpl.html"
+                u := r.FormValue("login")
+                p := r.FormValue("password")
+                if u == aname && p == apwd {
+                    log.Println("access admin interface")
+                } else {
+                    data := map[string]interface{}{}
+                    return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
+                        http.StatusOK, parseTmpl(tauth, data))
+                }
+                tpage := "admin.tmpl.html"
+                data := map[string]interface{}{
+                    "whitelist": whitelist,
+                    "blacklist": blacklist,
+                    "rulelist":  rulelist,
+                }
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, parseTmpl(tauth, data))
+                    http.StatusOK, parseTmpl(tpage, data))
+            } else if path == "/save" {
+                wlist := r.FormValue("whitelist")
+                blist := r.FormValue("backlist")
+                rlist := r.FormValue("rulelist")
+                log.Println("Save", wlist, blist, rlist)
+                return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
+                    http.StatusOK, "Done!")
+            } else {
+                return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
+                    http.StatusOK, "Not implemented")
             }
-			tpage := "admin.tmpl.html"
-			data := map[string]interface{}{
-				"whitelist": whitelist,
-				"blacklist": blacklist,
-				"rulelist":  rulelist,
-			}
-			return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-				http.StatusOK, parseTmpl(tpage, data))
 		})
 
 	// restrict certain sites on time based rules
