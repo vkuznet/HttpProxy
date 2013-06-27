@@ -101,6 +101,9 @@ type Rules struct {
 	MinHour int
 	MaxHour int
 }
+func (r *Rules) ToCSV() string {
+    return fmt.Sprintf("%s,%d,%d", r.Url, r.MinHour, r.MaxHour)
+}
 
 func parseRules(records [][]string) []Rules {
 	var rules []Rules
@@ -124,6 +127,9 @@ func parseTmpl(tmpl string, data interface{}) string {
 }
 
 func myproxy() {
+
+    pname := "HttpProxy4U"
+    pver := "1.0.0"
 
 	var port, wlistFile, blistFile, ruleFile, aname, apwd string
 	var verbose int
@@ -157,7 +163,23 @@ func myproxy() {
     lastRead := time.Now().UTC().Unix()
 
 	// admin handler
-	proxy.OnRequest(goproxy.DstHostIs("")).DoFunc(
+//    proxy.OnRequest(goproxy.IsLocalHost).DoFunc(
+    var rules []string
+    for _, r := range rulelist {
+        rules = append(rules, r.ToCSV())
+    }
+    tcss := "main.tmpl.css"
+    edata := map[string]interface{}{}
+    css := parseTmpl(tcss, edata)
+    data := map[string]interface{}{
+        "whitelist": strings.Join(whitelist, "\n"),
+        "blacklist": strings.Join(blacklist, "\n"),
+        "rulelist":  strings.Join(rules, "\n"),
+        "package": pname,
+        "version": pver,
+        "css": css,
+    }
+    proxy.OnRequest(goproxy.DstHostIs("")).DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
             path := html.EscapeString(r.URL.Path)
             log.Println("admin interface", path)
@@ -168,16 +190,10 @@ func myproxy() {
                 if u == aname && p == apwd {
                     log.Println("access admin interface")
                 } else {
-                    data := map[string]interface{}{}
                     return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
                         http.StatusOK, parseTmpl(tauth, data))
                 }
                 tpage := "admin.tmpl.html"
-                data := map[string]interface{}{
-                    "whitelist": whitelist,
-                    "blacklist": blacklist,
-                    "rulelist":  rulelist,
-                }
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
                     http.StatusOK, parseTmpl(tpage, data))
             } else if path == "/save" {
@@ -186,10 +202,11 @@ func myproxy() {
                 rlist := r.FormValue("rulelist")
                 log.Println("Save", wlist, blist, rlist)
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, "Done!")
+                    http.StatusOK, "New rules has been saved")
             } else {
+                tpage := "index.tmpl.html"
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, "Not implemented")
+                    http.StatusOK, parseTmpl(tpage, data))
             }
 		})
 
