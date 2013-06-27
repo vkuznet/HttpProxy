@@ -162,23 +162,32 @@ func myproxy() {
 	log.Println("Rule list:", rulelist)
     lastRead := time.Now().UTC().Unix()
 
-	// admin handler
-//    proxy.OnRequest(goproxy.IsLocalHost).DoFunc(
+    // local variables
     var rules []string
     for _, r := range rulelist {
         rules = append(rules, r.ToCSV())
     }
     tcss := "main.tmpl.css"
-    edata := map[string]interface{}{}
-    css := parseTmpl(tcss, edata)
-    data := map[string]interface{}{
+    data := map[string]interface{}{}
+    css := parseTmpl(tcss, data)
+    tfooter := "footer.tmpl.html"
+    data = map[string]interface{}{
+        "package": pname,
+        "version": pver,
+    }
+    footer := parseTmpl(tfooter, data)
+    data = map[string]interface{}{
         "whitelist": strings.Join(whitelist, "\n"),
         "blacklist": strings.Join(blacklist, "\n"),
         "rulelist":  strings.Join(rules, "\n"),
         "package": pname,
         "version": pver,
         "css": css,
+        "footer": footer,
     }
+
+	// admin handler
+//    proxy.OnRequest(goproxy.IsLocalHost).DoFunc(
     proxy.OnRequest(goproxy.DstHostIs("")).DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
             path := html.EscapeString(r.URL.Path)
