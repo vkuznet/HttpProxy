@@ -24,9 +24,7 @@ h3 {
     height: 100px;
 }
         
-/* =Navs
------------------------------------------------------------------------------*/
-/* Horizontal */
+/* Horizontal navigation */
 .nav-h {
   margin-bottom: 1.5em;
 }
@@ -67,15 +65,41 @@ h3 {
 .nav-h ul li span {
   color: #999999;
 }
-/* =Tablet (Portrait)
------------------------------------------------------------------------------*/
+/* Header */
+#header {
+    display: block;
+    overflow: hidden;
+    margin-bottom: 1.5em;
+    padding-left: 10px;
+    padding-top: 5px;
+    border-bottom: 3px solid #eee;
+}
+#header h1 {
+    float: left;
+    margin: 0;
+}
+#header nav {
+    padding-top: 1em;
+    float: right;
+}
+
+/* Footer */
+#footer {
+    text-align: right;
+    border-top: 3px solid #eee;
+    padding-top: 1.5em;
+    margin: 1.5em 0;
+    margin-right: 20px;
+    font-size: .85em;
+}
+
+/* Tablet (Portrait) */
 @media only screen and (min-width: 768px) and (max-width: 959px) {
     .wrapper { width: 748px; }
 }
 
 
-/* =Mobile (Portrait)
------------------------------------------------------------------------------*/
+/* Mobile (Portrait) */
 @media only screen and (max-width: 767px) {
     .wrapper { width: 300px; }
     #nav, #header h1 { float: none; }
@@ -84,8 +108,7 @@ h3 {
     #nav ul li a, #nav ul li span { display: block; padding: 2px 5px; }
 }
 
-/* =Mobile (Landscape)
------------------------------------------------------------------------------*/
+/* Mobile (Landscape) */
 @media only screen and (min-width: 480px) and (max-width: 767px) {
     .wrapper { width: 420px; }
 }
