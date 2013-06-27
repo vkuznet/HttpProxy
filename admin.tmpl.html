@@ -4,6 +4,17 @@
 </style>
 <body>
 <div class="wrapper">
+    <header id="header">
+    <h1>{{.package}} admin corner</h1>
+    <nav class="nav-h">
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><span>Admin</span></li>
+        <li><a href="/doc">Documentation</a></li>
+        <li><a href="/contact">Contact Us</a></li>
+    </ul>
+    </nav>
+    </header>
     <form action="/save" method="post" accept-charset="utf-8">
     <h2>{{.package}} admin panel</h2>
     <hr />
@@ -52,6 +63,7 @@ www.myspace.com,12,15
     <hr />
     <input type="submit" value="Submit"/>
     </form>
+    <footer id="footer">{{.footer}}</footer>
 </div>
 </body>
 </html>
