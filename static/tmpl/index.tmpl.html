@@ -1,0 +1,28 @@
+<html>
+<style type="text/css" media="all">
+{{.css}}
+</style>
+<body>
+<div class="wrapper">
+    <header id="header">
+    <h1>Welcome to {{.package}}</h1>
+    <nav class="nav-h">
+    <ul>
+        <li><span>Home</span></li>
+        <li><a href="/admin">Admin</a></li>
+        <li><a href="/doc">Documentation</a></li>
+        <li><a href="/contact">Contact Us</a></li>
+    </ul>
+    </nav>
+    </header>
+    <h3>Description</h3>
+    {{.package}} was designed to serve your proxy needs. Either you care about
+    your kids safeness on the internet or would like to set it up for
+    different purpose, the {{.package}} is for you.
+    <h3>Configuration</h3>
+    <h3>Administration</h3>
+    <footer id="footer">{{.footer}}</footer>
+</div>
+</body>
+</html>
+

@@ -1,0 +1,23 @@
+# google stuff
+google.com
+.*gstatic.com
+amazon.com
+# ebay stuff
+.*ebay.com
+.*ebaystatic.com
+.*ebayimg.com
+howstuffworks.com
+# motor ru stuff
+.*motor.ru
+.*rl0.ru
+.*yandex.ru
+# wikipedia stuff
+.*wikipedia.org
+.*wikimedia.org
+# axis and alias home page
+.*wizards.com
+kids.*yahoo.com
+kids.nationalgeographic.com
+# open .edu domain
+edu$
+.*weather.com
