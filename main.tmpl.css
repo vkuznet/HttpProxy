@@ -24,6 +24,49 @@ h3 {
     height: 100px;
 }
         
+/* =Navs
+-----------------------------------------------------------------------------*/
+/* Horizontal */
+.nav-h {
+  margin-bottom: 1.5em;
+}
+.nav-h:after {
+  content: ".";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+.nav-h ul {
+  list-style: none;
+  margin: 0;
+}
+.nav-h ul:after {
+  content: ".";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+.nav-h ul li {
+  float: left;
+  margin-right: 1.5em;
+}
+.nav-h ul li a,
+.nav-h ul li span {
+  display: block;
+}
+.nav-h ul li a {
+  color: #000000;
+  text-decoration: none;
+}
+.nav-h ul li a:hover {
+  color: #c72020;
+  text-decoration: underline;
+}
+.nav-h ul li span {
+  color: #999999;
+}
 /* =Tablet (Portrait)
 -----------------------------------------------------------------------------*/
 @media only screen and (min-width: 768px) and (max-width: 959px) {
