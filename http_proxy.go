@@ -16,14 +16,14 @@ import (
 	"time"
     "bytes"
     "text/template"
+    "path/filepath"
 )
 
 // consume list of templates and release their full path counterparts
-func fileNames(filenames ...string) []string {
-	tdir := "./" // template directory
+func fileNames(tdir string, filenames ...string) []string {
 	flist := []string{}
 	for _, fname := range filenames {
-		flist = append(flist, tdir+fname)
+		flist = append(flist, filepath.Join(tdir, fname))
 	}
 	return flist
 }
@@ -117,9 +117,9 @@ func parseRules(records [][]string) []Rules {
 	return rules
 }
 
-func parseTmpl(tmpl string, data interface{}) string {
+func parseTmpl(tdir, tmpl string, data interface{}) string {
     buf := new(bytes.Buffer)
-    filenames := fileNames(tmpl)
+    filenames := fileNames(tdir, tmpl)
     t := template.Must(template.ParseFiles(filenames...))
     err := t.Execute(buf, data)
     checkError(err)
@@ -131,13 +131,25 @@ func myproxy() {
     pname := "HttpProxy4U"
     pver := "1.0.0"
 
-	var port, wlistFile, blistFile, ruleFile, aname, apwd string
+    // get current working directory
+    cwd, err := os.Getwd()
+    checkError(err)
+
+    // parse input parameters
+	var port, wlistFile, blistFile, ruleFile, aname, apwd, tdir, rdir string
 	var verbose int
     var interval int64
 	flag.StringVar(&port, "port", ":9998", "Proxy port number")
-	flag.StringVar(&wlistFile, "whitelist", "whitelist.txt", "White list file")
-	flag.StringVar(&blistFile, "blacklist", "blacklist.txt", "Black list file")
-	flag.StringVar(&ruleFile, "rules", "rules.txt", "Rule list file")
+	flag.StringVar(&tdir, "tmpl-dir",
+            filepath.Join(cwd, "static/tmpl"), "Template directory")
+	flag.StringVar(&rdir, "rule-dir",
+            filepath.Join(cwd, "static/rules"), "Rules directory")
+	flag.StringVar(&wlistFile, "whitelist",
+            filepath.Join(rdir, "whitelist.txt"), "White list file")
+	flag.StringVar(&blistFile, "blacklist",
+            filepath.Join(rdir, "blacklist.txt"), "Black list file")
+	flag.StringVar(&ruleFile, "rules",
+            filepath.Join(rdir, "rules.txt"), "Rule list file")
 	flag.IntVar(&verbose, "verbose", 0, "logging level")
 	flag.Int64Var(&interval, "interval", 300, "reload interval")
 	flag.StringVar(&aname, "login", "admin", "Admin login name")
@@ -150,7 +162,8 @@ func myproxy() {
     if verbose > 1 {
         proxy.Verbose = true
     }
-	msg := fmt.Sprintf("port=%s, verbose=%d, wlist=%s, blist=%s, rule=%s", port, verbose, wlistFile, blistFile, ruleFile)
+	msg := fmt.Sprintf("port=%s, verbose=%d, wlist=%s, blist=%s, rule=%s",
+            port, verbose, wlistFile, blistFile, ruleFile)
 	log.Println(msg)
 
     // read out client settings
@@ -169,13 +182,13 @@ func myproxy() {
     }
     tcss := "main.tmpl.css"
     data := map[string]interface{}{}
-    css := parseTmpl(tcss, data)
+    css := parseTmpl(tdir, tcss, data)
     tfooter := "footer.tmpl.html"
     data = map[string]interface{}{
         "package": pname,
         "version": pver,
     }
-    footer := parseTmpl(tfooter, data)
+    footer := parseTmpl(tdir, tfooter, data)
     data = map[string]interface{}{
         "whitelist": strings.Join(whitelist, "\n"),
         "blacklist": strings.Join(blacklist, "\n"),
@@ -200,11 +213,11 @@ func myproxy() {
                     log.Println("access admin interface")
                 } else {
                     return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                        http.StatusOK, parseTmpl(tauth, data))
+                        http.StatusOK, parseTmpl(tdir, tauth, data))
                 }
                 tpage := "admin.tmpl.html"
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, parseTmpl(tpage, data))
+                    http.StatusOK, parseTmpl(tdir, tpage, data))
             } else if path == "/save" {
                 wlist := r.FormValue("whitelist")
                 blist := r.FormValue("backlist")
@@ -215,7 +228,7 @@ func myproxy() {
             } else {
                 tpage := "index.tmpl.html"
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, parseTmpl(tpage, data))
+                    http.StatusOK, parseTmpl(tdir, tpage, data))
             }
 		})
 
