@@ -1,0 +1,26 @@
+<html>
+<style type="text/css" media="all">
+{{.css}}
+</style>
+<body>
+<div class="wrapper">
+    <header id="header">
+    <h1>{{.package}} admin corner</h1>
+    <nav class="nav-h">
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><span>Admin</span></li>
+        <li><a href="/doc">Documentation</a></li>
+        <li><a href="/contact">Contact Us</a></li>
+    </ul>
+    </nav>
+    </header>
+    {{.body}}
+    <footer id="footer">{{.footer}}</footer>
+</div>
+<script type="text/javascript" charset="utf-8">
+// redirect to home after 2 seconds
+setTimeout(function () {window.location.href = "/";}, 2000);
+</script>
+</body>
+</html>
