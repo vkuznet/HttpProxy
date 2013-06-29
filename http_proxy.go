@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
     "bytes"
+    "io/ioutil"
     "text/template"
     "path/filepath"
 )
@@ -60,7 +61,7 @@ func readTxtFile(fname string) []string {
 		if err != nil {
 			break
 		}
-		line := string(data)
+		line := strip(string(data))
 		// skip line which starts with #
         if len(line) == 0 {
             continue
@@ -75,6 +76,26 @@ func readTxtFile(fname string) []string {
 		out = append(out, line)
 	}
 	return out
+}
+
+// function which strip off whitespaces from both side of given string
+func strip(s string) string {
+    slist := strings.Split(s, "")
+    i := -1
+    j := -1
+    for idx, v := range slist {
+        if i == -1 && v != " " {
+            i = idx
+        }
+        back_idx := len(s)-1-idx
+        if j == -1 && slist[back_idx] != " " {
+            j = back_idx
+        }
+    }
+    if i > 0 && j > 0 {
+        return s[i:j+1]
+    }
+    return s
 }
 
 // read CSV file and return headers and values
@@ -96,6 +117,14 @@ func readCSVFile(fname string) [][]string {
 	return out
 }
 
+// save given string to the file
+func saveList(fname string, c string) error {
+    byteArray := []byte(c)
+    err := ioutil.WriteFile(fname, byteArray, 0644)
+    return err
+}
+
+// rules structure and its methods
 type Rules struct {
 	Url     string
 	MinHour int
@@ -105,6 +134,7 @@ func (r *Rules) ToCSV() string {
     return fmt.Sprintf("%s,%d,%d", r.Url, r.MinHour, r.MaxHour)
 }
 
+// helper function to parse given set of records and return list of rules
 func parseRules(records [][]string) []Rules {
 	var rules []Rules
 	var r Rules
@@ -117,6 +147,7 @@ func parseRules(records [][]string) []Rules {
 	return rules
 }
 
+// parse template with given data
 func parseTmpl(tdir, tmpl string, data interface{}) string {
     buf := new(bytes.Buffer)
     filenames := fileNames(tdir, tmpl)
@@ -136,7 +167,7 @@ func myproxy() {
     checkError(err)
 
     // parse input parameters
-	var port, wlistFile, blistFile, ruleFile, aname, apwd, tdir, rdir string
+	var port, wlistFile, blistFile, rulesFile, aname, apwd, tdir, rdir string
 	var verbose int
     var interval int64
 	flag.StringVar(&port, "port", ":9998", "Proxy port number")
@@ -148,8 +179,8 @@ func myproxy() {
             filepath.Join(rdir, "whitelist.txt"), "White list file")
 	flag.StringVar(&blistFile, "blacklist",
             filepath.Join(rdir, "blacklist.txt"), "Black list file")
-	flag.StringVar(&ruleFile, "rules",
-            filepath.Join(rdir, "rules.txt"), "Rule list file")
+	flag.StringVar(&rulesFile, "rules",
+            filepath.Join(rdir, "rules.txt"), "Rules list file")
 	flag.IntVar(&verbose, "verbose", 0, "logging level")
 	flag.Int64Var(&interval, "interval", 300, "reload interval")
 	flag.StringVar(&aname, "login", "admin", "Admin login name")
@@ -163,7 +194,7 @@ func myproxy() {
         proxy.Verbose = true
     }
 	msg := fmt.Sprintf("port=%s, verbose=%d, wlist=%s, blist=%s, rule=%s",
-            port, verbose, wlistFile, blistFile, ruleFile)
+            port, verbose, wlistFile, blistFile, rulesFile)
 	log.Println(msg)
 
     // read out client settings
@@ -171,33 +202,27 @@ func myproxy() {
 	log.Println("White list:", whitelist)
 	blacklist := readTxtFile(blistFile)
 	log.Println("Black list:", blacklist)
-	rulelist := parseRules(readCSVFile(ruleFile))
-	log.Println("Rule list:", rulelist)
+	ruleslist := parseRules(readCSVFile(rulesFile))
+	log.Println("Rules list:", ruleslist)
     lastRead := time.Now().UTC().Unix()
 
     // local variables
     var rules []string
-    for _, r := range rulelist {
+    for _, r := range ruleslist {
         rules = append(rules, r.ToCSV())
     }
     tcss := "main.tmpl.css"
-    data := map[string]interface{}{}
-    css := parseTmpl(tdir, tcss, data)
+    tmplData := map[string]interface{}{}
+    css := parseTmpl(tdir, tcss, tmplData)
     tfooter := "footer.tmpl.html"
-    data = map[string]interface{}{
-        "package": pname,
-        "version": pver,
-    }
-    footer := parseTmpl(tdir, tfooter, data)
-    data = map[string]interface{}{
-        "whitelist": strings.Join(whitelist, "\n"),
-        "blacklist": strings.Join(blacklist, "\n"),
-        "rulelist":  strings.Join(rules, "\n"),
-        "package": pname,
-        "version": pver,
-        "css": css,
-        "footer": footer,
-    }
+    tmplData["package"] = pname
+    tmplData["version"] = pver
+    tmplData["css"] = css
+    footer := parseTmpl(tdir, tfooter, tmplData)
+    tmplData["whitelist"] = strings.Join(whitelist, "\n")
+    tmplData["blacklist"] = strings.Join(blacklist, "\n")
+    tmplData["ruleslist"] = strings.Join(rules, "\n")
+    tmplData["footer"] = footer
 
 	// admin handler
 //    proxy.OnRequest(goproxy.IsLocalHost).DoFunc(
@@ -213,35 +238,43 @@ func myproxy() {
                     log.Println("access admin interface")
                 } else {
                     return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                        http.StatusOK, parseTmpl(tdir, tauth, data))
+                        http.StatusOK, parseTmpl(tdir, tauth, tmplData))
                 }
                 tpage := "admin.tmpl.html"
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, parseTmpl(tdir, tpage, data))
+                    http.StatusOK, parseTmpl(tdir, tpage, tmplData))
             } else if path == "/save" {
-                wlist := r.FormValue("whitelist")
-                blist := r.FormValue("backlist")
-                rlist := r.FormValue("rulelist")
-                log.Println("Save", wlist, blist, rlist)
+                wlist := strip(r.FormValue("whitelist"))
+                blist := strip(r.FormValue("blacklist"))
+                rlist := strip(r.FormValue("ruleslist"))
+                saveList(wlistFile, wlist)
+                saveList(blistFile, blist)
+                saveList(rulesFile, rlist)
+                tmplData["whitelist"] = wlist
+                tmplData["blacklist"] = blist
+                tmplData["ruleslist"] = rlist
+                tpage := "save.tmpl.html"
+                tmplData["body"] = fmt.Sprintf("New rules has been saved on %s",
+                        time.Now())
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, "New rules has been saved")
+                    http.StatusOK, parseTmpl(tdir, tpage, tmplData))
             } else {
                 tpage := "index.tmpl.html"
                 return r, goproxy.NewResponse(r, goproxy.ContentTypeHtml,
-                    http.StatusOK, parseTmpl(tdir, tpage, data))
+                    http.StatusOK, parseTmpl(tdir, tpage, tmplData))
             }
 		})
 
 	// restrict certain sites on time based rules
-	for _, rule := range rulelist {
+	for _, rule := range ruleslist {
 		proxy.OnRequest(goproxy.DstHostIs(rule.Url)).DoFunc(
 			func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
                 // reload maps if necessary
                 unix := time.Now().UTC().Unix()
                 if  unix-lastRead > interval {
-                    rulelist := parseRules(readCSVFile(ruleFile))
+                    ruleslist := parseRules(readCSVFile(rulesFile))
                     if verbose > 0 {
-                        log.Println("Rule list:", rulelist)
+                        log.Println("Rules list:", ruleslist)
                     }
                     lastRead = unix
                 }
